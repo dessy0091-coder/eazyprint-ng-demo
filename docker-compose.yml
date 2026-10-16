@@ -1,0 +1,43 @@
+version: '3.8'
+services:
+  db:
+    image: postgres:15
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: eazyprint
+      POSTGRES_PASSWORD: eazyprint
+      POSTGRES_DB: eazyprintdb
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  backend:
+    build: ./backend
+    command: npm run dev
+    volumes:
+      - ./backend:/app
+      - ./uploads:/app/uploads
+    ports:
+      - "4000:4000"
+    environment:
+      - DATABASE_URL=postgresql://eazyprint:eazyprint@db:5432/eazyprintdb
+      - UPLOAD_DIR=/app/uploads
+      - NODE_ENV=development
+    depends_on:
+      - db
+
+  frontend:
+    build: ./frontend
+    command: npm run dev -- --host
+    volumes:
+      - ./frontend:/app
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_BASE=http://localhost:4000/api
+    depends_on:
+      - backend
+
+volumes:
+  db-data:
