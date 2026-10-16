@@ -1,6 +1,111 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+import React, { useEffect, useMemo, useState } from 'react';
+import axios from 'axios';
 
-:root { --brand: #22c55e }
-body { font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; }
+const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:4000/api';
+
+export default function Kiosk() {
+  const [pin, setPin] = useState('EZ-');
+  const [job, setJob] = useState<any | null>(null);
+  const [status, setStatus] = useState<'idle' | 'ready' | 'printing' | 'done'>('idle');
+  const [progress, setProgress] = useState(0);
+
+  const fetchJob = async () => {
+    try {
+      const res = await axios.get(`${API_BASE}/jobs/pin/${pin.trim()}`);
+      setJob(res.data);
+      setStatus('ready');
+    } catch (error) {
+      setJob(null);
+      setStatus('idle');
+      alert('Job not found');
+    }
+  };
+
+  const startPrinting = async () => {
+    if (!job) return;
+    setStatus('printing');
+
+    const totalPages = job.pages || 1;
+    let current = 0;
+    const timer = setInterval(() => {
+      current += 1;
+      setProgress(Math.min(100, Math.round((current / totalPages) * 100)));
+
+      if (current >= totalPages) {
+        clearInterval(timer);
+        axios.post(`${API_BASE}/jobs/${job.id}/print`).catch(() => undefined);
+        setStatus('done');
+      }
+    }, 500);
+  };
+
+  return (
+    <div className="page-shell kiosk-page">
+      <header className="topbar kiosk-topbar">
+        <div className="brand-block">
+          <div className="brand-mark">E</div>
+          <div>
+            <div className="brand-row">
+              <h1>EazyPrint Kiosk</h1>
+            </div>
+            <small>Physical Terminal Simulator</small>
+          </div>
+        </div>
+
+        <button type="button" className="link-btn" onClick={() => (window.location.href = '/')}>
+          Back to customer flow
+        </button>
+      </header>
+
+      <main className="main-wrap kiosk-wrap">
+        <section className="card kiosk-panel">
+          <div className="panel-header center">
+            <div>
+              <h3>Scan or Enter Pickup PIN</h3>
+              <p>Use the checkout PIN to fetch the queued print job.</p>
+            </div>
+          </div>
+
+          <div className="kiosk-input-row">
+            <input
+              type="text"
+              value={pin}
+              onChange={(event) => setPin(event.target.value)}
+              placeholder="EZ-9941"
+              aria-label="Pickup pin"
+            />
+            <button type="button" className="primary" onClick={fetchJob}>Fetch Print Job</button>
+          </div>
+
+          {status === 'ready' && job && (
+            <div className="job-summary">
+              <div><span>Location</span><strong>{job.location}</strong></div>
+              <div><span>Pages</span><strong>{job.pages}</strong></div>
+              <div><span>Amount</span><strong>₦{job.amount}</strong></div>
+              <button type="button" className="primary full" onClick={startPrinting}>Start Printing</button>
+            </div>
+          )}
+
+          {status === 'printing' && (
+            <div className="printing-box">
+              <div className="spinner" />
+              <p>Printing page {Math.max(1, Math.ceil((progress / 100) * (job?.pages || 1)))} of {job?.pages || 1}</p>
+              <div className="progress-track">
+                <div className="progress-fill" style={{ width: `${progress}%` }} />
+              </div>
+            </div>
+          )}
+
+          {status === 'done' && (
+            <div className="success-box">
+              <h4>Print Job Released!</h4>
+              <p>Collect your receipt and printed document from the tray.</p>
+              <strong>{job?.location}</strong>
+              <span>Job: {job?.pin}</span>
+            </div>
+          )}
+        </section>
+      </main>
+    </div>
+  );
+}

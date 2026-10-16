@@ -1,12 +1,11 @@
-import React from 'react'
-import ReactDOM from 'react-dom/client'
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
-import Home from './src/pages/Home'
-import Kiosk from './src/pages/Kiosk'
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import Home from './src/pages/Home';
+import Kiosk from './src/pages/Kiosk';
+import './src/styles.css';
 
-import './src/styles.css'
-
-ReactDOM.createRoot(document.getElementById('root')!).render(
+ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
   <React.StrictMode>
     <BrowserRouter>
       <Routes>
@@ -15,4 +14,4 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
       </Routes>
     </BrowserRouter>
   </React.StrictMode>
-)
+);
